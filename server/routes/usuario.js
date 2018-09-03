@@ -9,7 +9,7 @@ app.get('/usuario', (req, res) => {
     desde = Number(desde);
     let limite = req.query.limite || 5;
     limite = Number(limite);
-    Usuario.find({})
+    Usuario.find({ estado: true }, 'nombre email img role estado google')
         .skip(desde)
         .limit(limite)
         .exec((err, users) => {
@@ -19,9 +19,12 @@ app.get('/usuario', (req, res) => {
                     err
                 });
             }
-            res.json({
-                ok: true,
-                users
+            Usuario.count({ estado: true }, (err, conteo) => {
+                res.json({
+                    ok: true,
+                    users,
+                    cuantos: conteo
+                });
             });
         });
 });
@@ -70,8 +73,32 @@ app.put('/usuario/:id', (req, res) => {
     });
 });
 
-app.delete('/usuario', (req, res) => {
-    res.json('deleteUsuario');
+app.delete('/usuario/:id', (req, res) => {
+    let id = req.params.id;
+    // Usuario.findByIdAndRemove(id, (err, deleteUser) => {
+    let cambiaEstado = {
+        estado: false
+    };
+    Usuario.findByIdAndUpdate(id, cambiaEstado, { new: true }, (err, deleteUser) => {
+        if (err) {
+            return res.status(400).json({
+                ok: false,
+                err
+            });
+        }
+        if (!deleteUser) {
+            return res.status(400).json({
+                ok: false,
+                err: {
+                    message: 'Usuario no encontrado'
+                }
+            });
+        }
+        res.json({
+            ok: true,
+            usuario: deleteUser
+        });
+    });
 });
 
 module.exports = app;
